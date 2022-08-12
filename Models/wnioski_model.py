@@ -59,9 +59,15 @@ class Wnioski:
 
         df_daty_kursowania = df_daty_kursowania.reset_index()
 
-        # wybierz z dat kursowania pierwszą datę dla każdego zamówienia
-        df_daty_kursowania = df_daty_kursowania.drop_duplicates(subset=[
-                                                                'Nr zam.'])
+        try:
+            # wybierz z dat kursowania pierwszą datę dla każdego zamówienia
+            df_daty_kursowania = df_daty_kursowania.drop_duplicates(subset=[
+                                                                    'Nr zam.'])
+        except:
+            df_daty_kursowania.rename(
+                columns={'index': 'Nr zam.'}, inplace=True)
+            df_daty_kursowania = df_daty_kursowania.drop_duplicates(subset=[
+                                                                    'Nr zam.'])
 
         # dodaj do wniosków, dla każdego zamówienia pierwszy dzień kursowania
 

@@ -12,7 +12,7 @@ class DodatekView():
         print("Tworzenie pliku Excel...")
 
         tab_widoku_df_dodatek = df_dodatek.loc[:, ['Nr gr. poc.', 'opis_obiegu', 'Odległość',
-                                                   'Rodz. poc.', 'Termin', 'Uwagi', 'Rel. od', 'Odj. RT', 'Rel. do', 'Prz. RT', 'Zestawienie']]
+                                                   'Rodz. poc.', 'Nr poc.', 'Termin', 'Uwagi', 'Rel. od', 'Odj. RT', 'Rel. do', 'Prz. RT', 'Zestawienie']]
 
         wb_xl_dodatek = xw.Book()
 
@@ -23,15 +23,15 @@ class DodatekView():
 
         # Stylowanie dodatku:
 
-        ws_xl_dodatek["H1"].expand("down").number_format = 'gg:mm'
-        ws_xl_dodatek["J1"].expand("down").number_format = 'gg:mm'
+        ws_xl_dodatek["I1"].expand("down").number_format = 'gg:mm'
+        ws_xl_dodatek["K1"].expand("down").number_format = 'gg:mm'
         ws_xl_dodatek.autofit(axis="columns")
         ws_xl_dodatek["A1"].expand(
             "table").api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
 
         last_cell_row = ws_xl_dodatek["A1"].expand("down").last_cell.row + 2
         zakres_dodatku = ws_xl_dodatek.range(
-            f"A1:K{last_cell_row}")
+            f"A1:L{last_cell_row}")
 
         # Lewa krawędź
         zakres_dodatku.api.Borders(7).Weight = 3
@@ -57,9 +57,9 @@ class DodatekView():
         for odl in ws_xl_dodatek["C1"].expand("down"):
             if ws_xl_dodatek.range(f"C{odl.row}").value == 0:
                 ws_xl_dodatek.range(
-                    f"A{odl.row}:K{odl.row}").color = (248, 255, 229)
+                    f"A{odl.row}:L{odl.row}").color = (248, 255, 229)
                 ws_xl_dodatek.range(
-                    f"A{odl.row}:K{odl.row}").api.Font.Color = rgb_to_int((102, 102, 102))
+                    f"A{odl.row}:L{odl.row}").api.Font.Color = rgb_to_int((102, 102, 102))
 
         # rozdziel obiegi
         kom_poczatkowa = ws_xl_dodatek["B2"].value
@@ -77,9 +77,9 @@ class DodatekView():
                 opis_obiegu.api.EntireRow.Insert()
                 opis_obiegu.api.EntireRow.Insert()
                 ws_xl_dodatek.range(
-                    f"A{opis_obiegu.row}:K{opis_obiegu.row}").api.Borders(8).Weight = 3
+                    f"A{opis_obiegu.row}:L{opis_obiegu.row}").api.Borders(8).Weight = 3
                 ws_xl_dodatek.range(
-                    f"A{opis_obiegu.row + 1}:K{opis_obiegu.row + 1}").api.Borders(9).Weight = 3
+                    f"A{opis_obiegu.row + 1}:L{opis_obiegu.row + 1}").api.Borders(9).Weight = 3
 
         ws_xl_dodatek["A1"].api.EntireRow.Insert()
         ws_xl_dodatek["A1"].api.EntireColumn.Insert()

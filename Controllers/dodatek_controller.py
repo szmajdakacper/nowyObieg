@@ -40,9 +40,14 @@ class DodatekController:
                 print(
                     f"{rel_w_pot}. Pociąg_id: {int(poc_w_obiegu['Nr gr. poc.'])}")
 
-                # pobierz wnioski dla pociągu po jego id (nr gr. poc.), tylko z unikatowymi godzinami
-                wnioski_dla_poc_id = wnioski.pobierz_do_dodatku(
-                    "Nr gr. poc.", poc_w_obiegu['Nr gr. poc.'], nr_obiegu, rel_w_pot)
+                try:
+                    # pobierz wnioski dla pociągu po jego id (nr gr. poc.), tylko z unikatowymi godzinami
+                    wnioski_dla_poc_id = wnioski.pobierz_do_dodatku(
+                        "Nr gr. poc.", int(poc_w_obiegu['Nr gr. poc.']), nr_obiegu, rel_w_pot)
+                except:
+                    print(
+                        f"Brak wnioski o nr id: {poc_w_obiegu['Nr gr. poc.']}, lub pobieranie wywołało błąd.")
+                    continue
 
                 # dodaj do dataframe df_dodatek kolejny pociąg (z ew. wariantami)
                 df_dodatek = pd.concat(
@@ -52,21 +57,29 @@ class DodatekController:
 
         for nr_rel_w_dodatku, rel_w_dodatku in df_dodatek.iterrows():
 
-            # opis obiegu:
-            opis_obiegu = obiegi.loc[rel_w_dodatku["nr_obiegu"], "opis_obiegu"]
-            df_dodatek.loc[nr_rel_w_dodatku, "opis_obiegu"] = opis_obiegu
+            try:
+                # opis obiegu:
+                opis_obiegu = obiegi.loc[rel_w_dodatku["nr_obiegu"],
+                                         "opis_obiegu"]
+                df_dodatek.loc[nr_rel_w_dodatku, "opis_obiegu"] = opis_obiegu
 
-            # zestawienie:
-            zestawienie = obiegi.loc[rel_w_dodatku["nr_obiegu"], "Zestawienie"]
-            df_dodatek.loc[nr_rel_w_dodatku, "Zestawienie"] = zestawienie
+                # zestawienie:
+                zestawienie = obiegi.loc[rel_w_dodatku["nr_obiegu"],
+                                         "Zestawienie"]
+                df_dodatek.loc[nr_rel_w_dodatku, "Zestawienie"] = zestawienie
 
-            # termin:
-            termin = pot_all.loc[rel_w_dodatku["rel_w_pot"], "Termin"]
-            df_dodatek.loc[nr_rel_w_dodatku, "Termin"] = termin
+                # termin:
+                termin = pot_all.loc[rel_w_dodatku["rel_w_pot"], "Termin"]
+                df_dodatek.loc[nr_rel_w_dodatku, "Termin"] = termin
 
-            # uwagi:
-            uwagi = pot_all.loc[rel_w_dodatku["rel_w_pot"], "Uwagi"]
-            df_dodatek.loc[nr_rel_w_dodatku, "Uwagi"] = uwagi
+                # uwagi:
+                uwagi = pot_all.loc[rel_w_dodatku["rel_w_pot"], "Uwagi"]
+                df_dodatek.loc[nr_rel_w_dodatku, "Uwagi"] = uwagi
+            except Exception as e:
+                print(
+                    f"Próba dodania dodatkowych informacji dla {nr_rel_w_dodatku} zakończyła się błędem. Sprawdź to.")
+                print(opis_obiegu)
+                continue
 
         # Zwróć dodatek jako obiekt DateFrame ---------------------------------------------------------
 
