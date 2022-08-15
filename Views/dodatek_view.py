@@ -62,10 +62,11 @@ class DodatekView():
                     f"A{odl.row}:L{odl.row}").api.Font.Color = rgb_to_int((102, 102, 102))
 
         # rozdziel obiegi
-        kom_poczatkowa = ws_xl_dodatek["B2"].value
+        kom_poczatkowa = ws_xl_dodatek["B2"].expand("down").last_cell.value
+        kom_poprzednia = ws_xl_dodatek["B2"].expand("down").last_cell.value
 
-        for opis_obiegu in ws_xl_dodatek["B2"].expand("down"):
-
+        for row in range(ws_xl_dodatek["B2"].expand("down").last_cell.row, 2, -1):
+            opis_obiegu = ws_xl_dodatek[f"B{row}"]
             if opis_obiegu.value == kom_poczatkowa:
                 continue
 
@@ -74,12 +75,40 @@ class DodatekView():
 
             else:
                 kom_poczatkowa = opis_obiegu.value
-                opis_obiegu.api.EntireRow.Insert()
-                opis_obiegu.api.EntireRow.Insert()
+                kom_poprzednia = ws_xl_dodatek[f"B{row + 1}"]
+                kom_poprzednia.api.EntireRow.Insert()
                 ws_xl_dodatek.range(
-                    f"A{opis_obiegu.row}:L{opis_obiegu.row}").api.Borders(8).Weight = 3
+                    f"A{kom_poprzednia.row - 1}:L{kom_poprzednia.row - 1}").color = (255, 255, 255)
+
                 ws_xl_dodatek.range(
-                    f"A{opis_obiegu.row + 1}:L{opis_obiegu.row + 1}").api.Borders(9).Weight = 3
+                    f"A{kom_poprzednia.row}:L{kom_poprzednia.row}").api.Borders(8).Weight = 3
+                kom_poprzednia.api.EntireRow.Insert()
+                ws_xl_dodatek.range(
+                    f"A{opis_obiegu.row}:L{opis_obiegu.row}").api.Borders(9).Weight = 3
+
+                ws_xl_dodatek.range(
+                    f"B{kom_poprzednia.row - 1}:L{kom_poprzednia.row - 1}").api.Borders(11).LineStyle = 0
+                ws_xl_dodatek.range(
+                    f"B{kom_poprzednia.row}:L{kom_poprzednia.row}").api.Borders(11).LineStyle = 0
+                # ws_xl_dodatek.range(
+                #     f"A{kom_poprzednia.row + 1}:L{kom_poprzednia.row + 1}").api.Borders(9).Weight = 3
+
+        # for opis_obiegu in ws_xl_dodatek["B2"].expand("down"):
+
+        #     if opis_obiegu.value == kom_poczatkowa:
+        #         continue
+
+        #     elif opis_obiegu.value == None:
+        #         continue
+
+        #     else:
+        #         kom_poczatkowa = opis_obiegu.value
+        #         opis_obiegu.api.EntireRow.Insert()
+        #         opis_obiegu.api.EntireRow.Insert()
+        #         ws_xl_dodatek.range(
+        #             f"A{opis_obiegu.row}:L{opis_obiegu.row}").api.Borders(8).Weight = 3
+        #         ws_xl_dodatek.range(
+        #             f"A{opis_obiegu.row + 1}:L{opis_obiegu.row + 1}").api.Borders(9).Weight = 3
 
         ws_xl_dodatek["A1"].api.EntireRow.Insert()
         ws_xl_dodatek["A1"].api.EntireColumn.Insert()
