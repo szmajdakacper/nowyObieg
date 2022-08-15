@@ -90,25 +90,6 @@ class DodatekView():
                     f"B{kom_poprzednia.row - 1}:L{kom_poprzednia.row - 1}").api.Borders(11).LineStyle = 0
                 ws_xl_dodatek.range(
                     f"B{kom_poprzednia.row}:L{kom_poprzednia.row}").api.Borders(11).LineStyle = 0
-                # ws_xl_dodatek.range(
-                #     f"A{kom_poprzednia.row + 1}:L{kom_poprzednia.row + 1}").api.Borders(9).Weight = 3
-
-        # for opis_obiegu in ws_xl_dodatek["B2"].expand("down"):
-
-        #     if opis_obiegu.value == kom_poczatkowa:
-        #         continue
-
-        #     elif opis_obiegu.value == None:
-        #         continue
-
-        #     else:
-        #         kom_poczatkowa = opis_obiegu.value
-        #         opis_obiegu.api.EntireRow.Insert()
-        #         opis_obiegu.api.EntireRow.Insert()
-        #         ws_xl_dodatek.range(
-        #             f"A{opis_obiegu.row}:L{opis_obiegu.row}").api.Borders(8).Weight = 3
-        #         ws_xl_dodatek.range(
-        #             f"A{opis_obiegu.row + 1}:L{opis_obiegu.row + 1}").api.Borders(9).Weight = 3
 
         ws_xl_dodatek["A1"].api.EntireRow.Insert()
         ws_xl_dodatek["A1"].api.EntireColumn.Insert()
