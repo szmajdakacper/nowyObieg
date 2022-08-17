@@ -33,6 +33,11 @@ class DodatekView():
         zakres_dodatku = ws_xl_dodatek.range(
             f"A1:L{last_cell_row}")
 
+        # krawędzie wewnętrzne
+        zakres_dodatku.api.Borders(11).Weight = 1
+
+        zakres_dodatku.api.Borders(12).Weight = 1
+
         # Lewa krawędź
         zakres_dodatku.api.Borders(7).Weight = 3
         # Górna krawędź
@@ -43,15 +48,25 @@ class DodatekView():
         # Prawa krawędź
         zakres_dodatku.api.Borders(10).Weight = 3
 
-        zakres_dodatku.api.Borders(11).Weight = 1
-
-        zakres_dodatku.api.Borders(12).Weight = 1
-
         ws_xl_dodatek.range(f"A1:A{last_cell_row}").api.Borders(10).Weight = 3
 
         ws_xl_dodatek["A1"].expand("right").api.Borders(9).Weight = 3
         ws_xl_dodatek["A1"].expand("right").api.Borders(10).Weight = 3
         ws_xl_dodatek["A1"].expand("right").api.Font.Bold = True
+
+        print(last_cell_row)
+
+        # dwie ostatnie bez podziałki
+        ws_xl_dodatek.range(
+            f"A{last_cell_row - 1}:L{last_cell_row}").color = (255, 255, 255)
+        ws_xl_dodatek.range(
+            f"A{last_cell_row - 1}:A{last_cell_row}").api.Borders(12).LineStyle = 0
+        ws_xl_dodatek.range(
+            f"A{last_cell_row - 1}:A{last_cell_row}").api.Borders(11).LineStyle = 0
+        ws_xl_dodatek.range(
+            f"B{last_cell_row - 1}:L{last_cell_row}").api.Borders(12).LineStyle = 0
+        ws_xl_dodatek.range(
+            f"B{last_cell_row - 1}:L{last_cell_row}").api.Borders(11).LineStyle = 0
 
         # podkreśl warianty
         for odl in ws_xl_dodatek["C1"].expand("down"):
