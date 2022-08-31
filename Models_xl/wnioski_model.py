@@ -36,6 +36,10 @@ class Wnioski:
 
         return self.wnioski
 
+    def all_daty_kursowania(self):
+
+        return self.daty_kursowania
+
     def filtruj(self, wg_kolumny, wartosc):
 
         wnioski_wartosc = self.wnioski.loc[self.wnioski[wg_kolumny] == wartosc]
@@ -95,3 +99,23 @@ class Wnioski:
         wnioski_unikatowe['rel_w_pot'] = rel_w_pot
 
         return wnioski_unikatowe
+
+    def pobierz_liste_zamowien(self, nr_gr_poc):
+
+        wnioski_po_nr_gr = self.wnioski.loc[self.wnioski["Nr gr. poc."] == nr_gr_poc]
+
+        # wybierz z wniosków tylko unikatowe wartości
+        wnioski_unikatowe = wnioski_po_nr_gr.drop_duplicates(
+            subset=['Nr zam.'])
+
+        wnioski_unikatowe = wnioski_unikatowe.loc[:, [
+            'Nr gr. poc.', 'Nr zam.']]
+
+        return wnioski_unikatowe
+
+    def filtruj_daty_kursowania(self, data):
+
+        zamowienia = self.daty_kursowania.loc[self.daty_kursowania["Data kursowania"] == data]
+        zamowienia = zamowienia.reset_index()
+
+        return zamowienia

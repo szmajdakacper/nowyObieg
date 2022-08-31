@@ -1,6 +1,6 @@
 import xlwings as xw
 
-from Models.wnioski_model import Wnioski
+from Models_xl.wnioski_model import Wnioski
 
 
 class WnioskiController:

@@ -108,7 +108,7 @@ def zakres_dat(data_kursowania):
     elif def_wykluczen == "w (C)":
         oraz = [6, 7]
         for dzien_kursowania in lista_caly_zakres:
-            if dzien_kursowania.isoweekday() in oraz:
+            if (dzien_kursowania in swieta_poza_niedziela) | (dzien_kursowania in oraz):
                 lista_dat.append(dzien_kursowania)
 
     elif def_wykluczen == "w (B)":

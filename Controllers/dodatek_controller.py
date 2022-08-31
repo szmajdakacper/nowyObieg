@@ -1,10 +1,10 @@
 import pandas as pd
 
-from Models.wnioski_model import Wnioski
+from Models_xl.wnioski_model import Wnioski
 
-from Models.obiegi_model import Obiegi
+from Models_xl.obiegi_model import Obiegi
 
-from Models.pot_model import Pot
+from Models_xl.pot_model import Pot
 
 
 class DodatekController:
