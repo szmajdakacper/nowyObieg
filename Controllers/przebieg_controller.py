@@ -129,7 +129,7 @@ class PrzebiegController():
                                 "Nr zam.", zamowienie["Nr zam."])
 
                             wniosek_poc.insert(
-                                0, "Data", dzien.strftime('%m-%d'))
+                                0, "Data", dzien.strftime('%Y-%m-%d'))
 
                             wniosek_poc.insert(1, "nr_obiegu", nr_obiegu)
 
