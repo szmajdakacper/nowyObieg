@@ -4,6 +4,8 @@ from xlwings.utils import rgb_to_int
 
 import pandas as pd
 
+import datetime as dt
+
 from datetime import datetime
 
 
@@ -59,28 +61,30 @@ class PrzebiegView():
                         dfd.loc[mask, 'nr_pojazdu'] = pojazd
                         df_przebieg_dla_obiegu = dfd
 
-                        # zapamiętaj poprzedni nr dnia obiegu
-                        poprz_nr_dnia_ob = nr_dnia_obiegu
+                        # 1. nast_dzien_o następny dzień obiegu
+                        nast_dzien_o = nr_dnia_obiegu + 1
 
-                        # zmień dzień obiegu dla pojazdu:
-                        nr_dnia_obiegu = nr_dnia_obiegu + 1
-                        if nr_dnia_obiegu > ilosc_pojazdow:
-                            nr_dnia_obiegu = 1
+                        if nast_dzien_o > ilosc_pojazdow:
+                            nast_dzien_o = 1
 
-                        # sprawdź czy następnego dnia zaczyna w stacji, w której skończył
-                        while not self.przejscie_pojazdu(
-                                df_przebieg_dla_obiegu, p_dzien, nr_dnia_obiegu, poprz_nr_dnia_ob):
+                        if not p_dzien == p_end:
 
-                            if nr_dnia_obiegu == poprz_nr_dnia_ob:
-                                if self.przejscie_pojazdu(
-                                        df_przebieg_dla_obiegu, p_dzien, nr_dnia_obiegu, poprz_nr_dnia_ob) == False:
-                                    print(
-                                        f"Nie poprawne przejście jednoski z dnia {p_dzien} na dzień następny!")
-                                    break
+                            # sprawdź czy następnego dnia zaczyna w stacji, w której skończył
+                            while not self.przejscie_pojazdu(
+                                    df_przebieg_dla_obiegu, p_dzien, nast_dzien_o, nr_dnia_obiegu):
 
-                            nr_dnia_obiegu = nr_dnia_obiegu + 1
-                            if nr_dnia_obiegu > ilosc_pojazdow:
-                                nr_dnia_obiegu = 1
+                                if nast_dzien_o == nr_dnia_obiegu:
+                                    if self.przejscie_pojazdu(
+                                            df_przebieg_dla_obiegu, p_dzien, nast_dzien_o, nr_dnia_obiegu) == False:
+                                        print(
+                                            f"Nie poprawne przejście jednoski z dnia {p_dzien} na dzień następny!")
+                                        break
+
+                                nast_dzien_o = nast_dzien_o + 1
+                                if nast_dzien_o > ilosc_pojazdow:
+                                    nast_dzien_o = 1
+
+                        nr_dnia_obiegu = nast_dzien_o
 
             try:
 
@@ -110,9 +114,10 @@ class PrzebiegView():
         dfe = dfd.loc[mask, :]
         ostatnia_stacja = dfe.iloc[-1, 9]
         o_s_nr_poc = dfe.iloc[-1, 5]
+
         dff = df_przebieg_dla_obiegu.copy()
         mask = (dff['Data'] == datetime.strftime(
-            p_dzien, '%Y-%m-%d')) & (dff['dzien_w_obiegu'] == nr_dnia_obiegu)
+            (p_dzien + dt.timedelta(days=1)), '%Y-%m-%d')) & (dff['dzien_w_obiegu'] == nr_dnia_obiegu)
         dfg = dff.loc[mask, :]
         pierwsza_nast_doba_stacja = dfg.iloc[0, 7]
         p_s_nr_poc = dfg.iloc[0, 5]
