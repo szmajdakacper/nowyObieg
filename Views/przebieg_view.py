@@ -15,11 +15,11 @@ class PrzebiegView():
 
         print("Tworzenie pliku Excel...")
 
+        wb_xl_przebieg = xw.Book()
+
         nr_obiegow = df_przebieg.drop_duplicates(subset=['nr_obiegu'])
 
         nr_obiegow = nr_obiegow.loc[:, 'nr_obiegu']
-
-        wb_xl_przebieg = xw.Book()
 
         # określ ramy czasowe przebiegu
         p_start = datetime.strptime(
@@ -32,59 +32,8 @@ class PrzebiegView():
 
         for nr_obiegu in range(int(nr_obiegow.min()), int(nr_obiegow.max() + 1)):
 
-            print(f"rysuje przebieg obiegu : {nr_obiegu}")
-
-            df_przebieg_dla_obiegu = df_przebieg.loc[df_przebieg['nr_obiegu'] == nr_obiegu]
-
-            # jeżeli dzien w obiegu nie jest zdefiniowany to oznacz jako 1
-            dfd = df_przebieg_dla_obiegu.copy()
-            mask = dfd.dzien_w_obiegu.isnull()
-            dfd.loc[mask, 'dzien_w_obiegu'] = 1
-
-            df_przebieg_dla_obiegu = dfd
-
-            ilosc_pojazdow = df_przebieg_dla_obiegu.loc[:, 'dzien_w_obiegu'].max(
-            )
-
-            if ilosc_pojazdow == 1:
-                df_przebieg_dla_obiegu.insert(12, "nr_pojazdu", 1)
-            else:
-                df_przebieg_dla_obiegu['nr_pojazdu'] = pd.Series()
-                # rozdziel obieg pomiędzy pojazdy, jeżeli obieg jest kilkudniowy
-                for pojazd in range(1, int(ilosc_pojazdow) + 1):
-                    nr_dnia_obiegu = pojazd
-                    for p_dzien in p_zakres:
-
-                        dfd = df_przebieg_dla_obiegu.copy()
-                        mask = (dfd['Data'] == datetime.strftime(
-                            p_dzien, '%Y-%m-%d')) & (dfd['dzien_w_obiegu'] == nr_dnia_obiegu)
-                        dfd.loc[mask, 'nr_pojazdu'] = pojazd
-                        df_przebieg_dla_obiegu = dfd
-
-                        # 1. nast_dzien_o następny dzień obiegu
-                        nast_dzien_o = nr_dnia_obiegu + 1
-
-                        if nast_dzien_o > ilosc_pojazdow:
-                            nast_dzien_o = 1
-
-                        if not p_dzien == p_end:
-
-                            # sprawdź czy następnego dnia zaczyna w stacji, w której skończył
-                            while not self.przejscie_pojazdu(
-                                    df_przebieg_dla_obiegu, p_dzien, nast_dzien_o, nr_dnia_obiegu):
-
-                                if nast_dzien_o == nr_dnia_obiegu:
-                                    if self.przejscie_pojazdu(
-                                            df_przebieg_dla_obiegu, p_dzien, nast_dzien_o, nr_dnia_obiegu) == False:
-                                        print(
-                                            f"Nie poprawne przejście jednoski z dnia {p_dzien} na dzień następny!")
-                                        break
-
-                                nast_dzien_o = nast_dzien_o + 1
-                                if nast_dzien_o > ilosc_pojazdow:
-                                    nast_dzien_o = 1
-
-                        nr_dnia_obiegu = nast_dzien_o
+            df_przebieg_dla_obiegu = self.rozpisz_przebieg_obiegu(
+                df_przebieg, nr_obiegu, p_zakres, p_end)
 
             try:
 
@@ -97,6 +46,9 @@ class PrzebiegView():
 
             ws_xl_przebieg = wb_xl_przebieg.sheets[f"obieg_{nr_obiegu}"]
 
+            df_przebieg_dla_obiegu = df_przebieg_dla_obiegu.sort_values(
+                by=['nr_pojazdu', 'Data', 'Odj. RT'])
+
             ws_xl_przebieg["A1"].options(
                 pd.DataFrame, expand='table', index=False).value = df_przebieg_dla_obiegu
 
@@ -106,7 +58,68 @@ class PrzebiegView():
 
         print("Zakończono tworzenie pliku excel z sukcesem.")
 
-    def przejscie_pojazdu(self, df_przebieg_dla_obiegu, p_dzien, nr_dnia_obiegu, poprz_nr_dnia_ob):
+    def rozpisz_przebieg_obiegu(self, df_przebieg, nr_obiegu, p_zakres, p_end):
+
+        print(f"rysuje przebieg obiegu : {nr_obiegu}")
+
+        df_przebieg_dla_obiegu = df_przebieg.loc[df_przebieg['nr_obiegu'] == nr_obiegu]
+
+        df_przebieg_dla_obiegu = df_przebieg_dla_obiegu.sort_values(
+            by=['Data', 'Odj. RT'])
+
+        # jeżeli dzien w obiegu nie jest zdefiniowany to oznacz jako 1
+        dfd = df_przebieg_dla_obiegu.copy()
+        mask = dfd.dzien_w_obiegu.isnull()
+        dfd.loc[mask, 'dzien_w_obiegu'] = 1
+
+        df_przebieg_dla_obiegu = dfd
+
+        ilosc_pojazdow = df_przebieg_dla_obiegu.loc[:, 'dzien_w_obiegu'].max(
+        )
+
+        if ilosc_pojazdow == 1:
+            df_przebieg_dla_obiegu.insert(12, "nr_pojazdu", 1)
+        else:
+            df_przebieg_dla_obiegu['nr_pojazdu'] = pd.Series()
+            # rozdziel obieg pomiędzy pojazdy, jeżeli obieg jest kilkudniowy
+            for pojazd in range(1, int(ilosc_pojazdow) + 1):
+                nr_dnia_obiegu = pojazd
+                for p_dzien in p_zakres:
+
+                    dfd = df_przebieg_dla_obiegu.copy()
+                    mask = (dfd['Data'] == datetime.strftime(
+                        p_dzien, '%Y-%m-%d')) & (dfd['dzien_w_obiegu'] == nr_dnia_obiegu)
+                    dfd.loc[mask, 'nr_pojazdu'] = pojazd
+                    df_przebieg_dla_obiegu = dfd
+
+                    # 1. nast_dzien_o następny dzień obiegu
+                    nast_dzien_o = nr_dnia_obiegu + 1
+
+                    if nast_dzien_o > ilosc_pojazdow:
+                        nast_dzien_o = 1
+
+                    if not p_dzien == p_end:
+
+                        # sprawdź czy następnego dnia zaczyna w stacji, w której skończył
+                        while not self.przejscie_nocne_pojazdu(
+                                df_przebieg_dla_obiegu, p_dzien, nast_dzien_o, nr_dnia_obiegu):
+
+                            if nast_dzien_o == nr_dnia_obiegu:
+                                if self.przejscie_nocne_pojazdu(
+                                        df_przebieg_dla_obiegu, p_dzien, nast_dzien_o, nr_dnia_obiegu) == False:
+                                    print(
+                                        f"BŁĄD_PRZEJŚCIA: Nie poprawne przejście jednoski z dnia {p_dzien} na dzień następny!")
+                                    break
+
+                            nast_dzien_o = nast_dzien_o + 1
+                            if nast_dzien_o > ilosc_pojazdow:
+                                nast_dzien_o = 1
+
+                    nr_dnia_obiegu = nast_dzien_o
+
+        return df_przebieg_dla_obiegu
+
+    def przejscie_nocne_pojazdu(self, df_przebieg_dla_obiegu, p_dzien, nr_dnia_obiegu, poprz_nr_dnia_ob):
 
         dfd = df_przebieg_dla_obiegu.copy()
         mask = (dfd['Data'] == datetime.strftime(
@@ -123,8 +136,6 @@ class PrzebiegView():
         p_s_nr_poc = dfg.iloc[0, 5]
 
         if ostatnia_stacja != pierwsza_nast_doba_stacja:
-            print(
-                f"{datetime.strftime(p_dzien, '%d.%m')}. {o_s_nr_poc}: {ostatnia_stacja} nierówna się {p_s_nr_poc}: {pierwsza_nast_doba_stacja}")
             return False
         else:
             return True
