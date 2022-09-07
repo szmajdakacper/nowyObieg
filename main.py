@@ -9,8 +9,8 @@ from Controllers.przebieg_controller import PrzebiegController
 
 # xl_dodatek.dodatek_do_xl(df_dodatek.stworz_dodatek())
 
-start_przebiegu = "04-09-2022"
-koniec_przebiegu = "10-09-2022"
+start_przebiegu = "06-11-2022"
+koniec_przebiegu = "10-12-2022"
 
 przebieg = PrzebiegController(start_przebiegu, koniec_przebiegu)
 
