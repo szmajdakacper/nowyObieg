@@ -106,7 +106,15 @@ class PrzebiegController():
                     elif re.search(r"^\[\d\]$", poc_w_obiegu["Termin"]):
                         # jeden dzien w tygodniu
                         dzien_w_tyg = re.findall(r"\d", poc_w_obiegu["Termin"])
-                        if dzien.isoweekday() >= int(dzien_w_tyg[0]):
+                        if dzien.isoweekday() == int(dzien_w_tyg[0]):
+                            pass
+                        else:
+                            continue
+
+                    elif re.search(r"^\[\d\]\+$", poc_w_obiegu["Termin"]):
+                        # jeden dzien w tygodniu
+                        dzien_w_tyg = re.findall(r"\d", poc_w_obiegu["Termin"])
+                        if (dzien.isoweekday() == int(dzien_w_tyg[0])) | (dzien in self.zmienneSrodowiskowe.swieta_poza_niedziela):
                             pass
                         else:
                             continue

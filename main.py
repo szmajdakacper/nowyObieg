@@ -17,3 +17,5 @@ przebieg = PrzebiegController(start_przebiegu, koniec_przebiegu)
 xl_przebieg = PrzebiegView()
 
 xl_przebieg.przebieg_do_xl(przebieg.stworz_przebieg())
+
+# xl_przebieg.test_kalendarza()

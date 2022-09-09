@@ -9,6 +9,8 @@ import datetime as dt
 
 from datetime import datetime
 
+from env.env import FunkcjeGlobalne as fg
+
 
 class PrzebiegView():
 
@@ -65,39 +67,63 @@ class PrzebiegView():
 
         daty_wariantu = {}
 
+        wystapienia = 0
+
         for index, row in df_dates.iterrows():
+
+            # dla każdej daty w zakresie:
 
             df_c = df.copy()
             mask = (df_c['Data'] == index)
             df_temp = df_c.loc[mask, :]
             df_temp = df_temp.reset_index(drop=True)
 
-            if df_temp.empty:
-                continue
+            # rozdziel obiegi jeżeli są więcej niż jednodniowe:
+            ilosc_pojazdow = df_przebieg_dla_obiegu.loc[:, 'dzien_w_obiegu'].max(
+            )
 
-            df_temp_s_col = df_temp.loc[:, [
-                "Rel. od", "Odj. RT", "Rel. do", "Prz. RT"]]
+            # jednodniowe obiegi dla każdego pojazdu
+            for pojazd in range(1, int(ilosc_pojazdow) + 1):
 
-            wystapienia = 0
+                mask_pojazd = (df_temp['nr_pojazdu'] == pojazd)
+                df_temp_p = df_temp.loc[mask_pojazd, :]
 
-            if len(lista_df) == 0:
-                lista_df.append(df_temp)
-                wystapienia = 1
-                daty_wariantu[df_temp.iloc[0, 0]] = [df_temp.iloc[0, 0]]
-            else:
-                for df_unique in lista_df:
-                    df_s_col = df_unique.loc[:, ["Rel. od",
-                                                 "Odj. RT", "Rel. do", "Prz. RT"]]
-                    if df_temp_s_col.equals(df_s_col):
-                        wystapienia = 1
-                        wariant = df_unique.iloc[0, 0]
-                        daty_wariantu[wariant].append(df_temp.iloc[0, 0])
+                df_temp_s_col = df_temp_p.loc[:, [
+                    "Rel. od", "Odj. RT", "Rel. do", "Prz. RT"]]
 
-            if wystapienia == 0:
-                lista_df.append(df_temp)
-                daty_wariantu[df_temp.iloc[0, 0]] = [df_temp.iloc[0, 0]]
+                df_temp_s_col = df_temp_s_col.reset_index(drop=True)
 
-        # --------------------------------------------------------------------
+                if len(lista_df) == 0:
+                    lista_df.append(df_temp_p)
+                    wystapienia = 1
+
+                    daty_wariantu[0] = [
+                        df_temp_p.iloc[0, 0]]
+
+                else:
+                    wystapienia = 0
+                    for index_df_unique, df_unique in enumerate(lista_df):
+                        df_s_col = df_unique.loc[:, ["Rel. od",
+                                                     "Odj. RT", "Rel. do", "Prz. RT"]]
+
+                        if df_temp_s_col.equals(df_s_col):
+                            wystapienia = 1
+                            daty_wariantu[index_df_unique].append(
+                                df_temp_p.iloc[0, 0])
+
+                if wystapienia == 0:
+                    df_temp_p = df_temp_p.reset_index(drop=True)
+                    try:
+                        daty_wariantu[len(lista_df)] = [
+                            df_temp_p.iloc[0, 0]]
+                    except:
+                        print(df_temp)
+                        print(df_temp_p)
+                        print(pojazd)
+
+                    lista_df.append(df_temp_p)
+
+                    # --------------------------------------------------------------------
 
         try:
 
@@ -108,6 +134,8 @@ class PrzebiegView():
 
             xw_book.sheets.add(f"obieg_{nr_obiegu}")
 
+        f_row = 1
+
         for i, df_u in enumerate(lista_df):
 
             wariant = df_u.iloc[0, 0]
@@ -115,25 +143,32 @@ class PrzebiegView():
             df_u = df_u.loc[:, ["Odległość", "Nr poc.", "Rodz. poc.", "Rel. od",
                                 "Odj. RT", "Rel. do", "Prz. RT", "Pojazdy"]]
 
-            df_u.loc[:, 'wariant'] = i
+            df_u.loc[:, 'wariant_obiegu'] = i
 
             ws_xl_dodatek_z_przebiegu = xw_book.sheets[f"obieg_{nr_obiegu}"]
+
+            # WKLEJANIE DO EXCELA
 
             if i == 0:
                 ws_xl_dodatek_z_przebiegu["A1"].options(
                     pd.DataFrame, expand='table', index=False).value = df_u
 
             else:
-                l_row = ws_xl_dodatek_z_przebiegu["A1"].expand(
-                    'down').last_cell.row + 1
-                ws_xl_dodatek_z_przebiegu[f"A{l_row}"].expand('down').options(
+
+                f_row = f_row + l_row
+                ws_xl_dodatek_z_przebiegu[f"A{f_row}"].expand('down').options(
                     pd.DataFrame, expand='table', index=False, header=False).value = df_u
 
-            l_row = ws_xl_dodatek_z_przebiegu["A1"].expand(
-                "down").last_cell.row + 1
+            kalendarz = fg()
+            kalendarz.rysuj_kalendarz(
+                daty_wariantu[i], df_dates, ws_xl_dodatek_z_przebiegu, f_row, 11)
 
-            ws_xl_dodatek_z_przebiegu[f"J{l_row}"].value = ' '.join(
-                daty_wariantu[wariant])
+            df_u_len = len(df_u.index)
+
+            if df_u_len < 14:
+                l_row = 14
+            else:
+                l_row = df_u_len + 1
 
         # styl arkusza:
         ws_xl_dodatek_z_przebiegu["E:E"].number_format = 'gg:mm'
@@ -198,6 +233,7 @@ class PrzebiegView():
             df_przebieg_dla_obiegu.insert(12, "nr_pojazdu", 1)
         else:
             df_przebieg_dla_obiegu['nr_pojazdu'] = pd.Series()
+            df_przebieg_dla_obiegu.insert(13, "wykorzystanie", 0)
             # rozdziel obieg pomiędzy pojazdy, jeżeli obieg jest kilkudniowy
             for pojazd in range(1, int(ilosc_pojazdow) + 1):
                 nr_dnia_obiegu = pojazd
@@ -207,6 +243,7 @@ class PrzebiegView():
                     mask = (dfd['Data'] == datetime.strftime(
                         p_dzien, '%Y-%m-%d')) & (dfd['dzien_w_obiegu'] == nr_dnia_obiegu)
                     dfd.loc[mask, 'nr_pojazdu'] = pojazd
+                    dfd.loc[mask, 'wykorzystanie'] = 1
                     df_przebieg_dla_obiegu = dfd
 
                     # 1. nast_dzien_o następny dzień obiegu
@@ -250,9 +287,11 @@ class PrzebiegView():
             (p_dzien + dt.timedelta(days=1)), '%Y-%m-%d')) & (dff['dzien_w_obiegu'] == nr_dnia_obiegu)
         dfg = dff.loc[mask, :]
         pierwsza_nast_doba_stacja = dfg.iloc[0, 7]
-        p_s_nr_poc = dfg.iloc[0, 5]
+        wykorzystanie = dfg.iloc[0, 13]
 
         if ostatnia_stacja != pierwsza_nast_doba_stacja:
             return False
         else:
+            if wykorzystanie == 1:
+                return False
             return True
