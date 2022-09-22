@@ -43,6 +43,7 @@ class PrzebiegController():
 
         # Pętla po każdym obiegu
         for nr_obiegu, obieg in obiegi_all.iterrows():
+            # for nr_obiegu in range(1, 4):
             pociagi_w_obiegu = pot.filtruj("nr_obiegu", nr_obiegu)
             print(f"Analiza obiegu: {nr_obiegu}")
 
@@ -95,6 +96,14 @@ class PrzebiegController():
                         elif (dzien.isoweekday() == 7):
                             continue
 
+                    elif re.search(r"^\[\d-\d\]\-$", poc_w_obiegu["Termin"]):
+                        # dni tygodnia od - do
+                        od_do = re.findall(r"\d", poc_w_obiegu["Termin"])
+                        if (dzien.isoweekday() >= int(od_do[0])) & (dzien.isoweekday() <= int(od_do[1])) & (dzien not in self.zmienneSrodowiskowe.swieta_poza_niedziela):
+                            pass
+                        else:
+                            continue
+
                     elif re.search(r"^\[\d-\d\]$", poc_w_obiegu["Termin"]):
                         # dni tygodnia od - do
                         od_do = re.findall(r"\d", poc_w_obiegu["Termin"])
@@ -118,6 +127,21 @@ class PrzebiegController():
                             pass
                         else:
                             continue
+
+                    # specjalne wyjątki w terminie kursowania:-------------------------------------------------------------------
+
+                    elif re.search(r"^\[\d\]\*1$", poc_w_obiegu["Termin"]):
+                        # jeden dzien w tygodniu
+                        dzien_w_tyg = re.findall(r"\d", poc_w_obiegu["Termin"])
+                        # 10.XI - czwartek przed świętem 11.11.2022
+                        spec_dzien = [datetime(2022, 11, 10)]
+
+                        if (dzien.isoweekday() == int(dzien_w_tyg[0])) | (dzien in spec_dzien):
+                            pass
+                        else:
+                            continue
+
+                    # -----------------------------------------------------------------------------------------------------------
 
                     else:
                         print(

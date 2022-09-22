@@ -120,3 +120,6 @@ class FunkcjeGlobalne:
         whole_calendar_range.api.Borders(10).Weight = 3
         whole_calendar_range.api.Borders(11).Weight = 1
         whole_calendar_range.api.Borders(12).Weight = 1
+
+    def wykres_z_pot_r():
+        pass

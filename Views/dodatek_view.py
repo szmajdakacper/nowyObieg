@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import xlwings as xw
 
 from xlwings.utils import rgb_to_int
@@ -54,8 +56,6 @@ class DodatekView():
         ws_xl_dodatek["A1"].expand("right").api.Borders(10).Weight = 3
         ws_xl_dodatek["A1"].expand("right").api.Font.Bold = True
 
-        print(last_cell_row)
-
         # dwie ostatnie bez podziałki
         ws_xl_dodatek.range(
             f"A{last_cell_row - 1}:L{last_cell_row}").color = (255, 255, 255)
@@ -108,5 +108,8 @@ class DodatekView():
 
         ws_xl_dodatek["A1"].api.EntireRow.Insert()
         ws_xl_dodatek["A1"].api.EntireColumn.Insert()
+
+        wb_xl_dodatek.save(Path(__file__) / ".." / ".." /
+                           "src" / "outputs" / "pot" / "pot.xlsx")
 
         print("Proces tworzenia dodatku w Excelu zakończony sukcesem!")
