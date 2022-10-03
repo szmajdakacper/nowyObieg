@@ -40,4 +40,8 @@ class Pot:
 
             pot_wyfiltrowane = self.pot.loc[self.pot[wg_kolumny] == wartosc]
 
+        df_temp = pot_wyfiltrowane.fillna(0)
+
+        pot_wyfiltrowane = df_temp
+
         return pot_wyfiltrowane

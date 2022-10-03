@@ -7,11 +7,17 @@ from Controllers.przebieg_controller import PrzebiegController
 
 start = datetime.now()
 
-df_dodatek = DodatekController()
 
-xl_dodatek = DodatekView()
+# # -- Dodatek:
 
-xl_dodatek.dodatek_do_xl(df_dodatek.stworz_dodatek())
+# df_dodatek = DodatekController()
+
+# xl_dodatek = DodatekView()
+
+# xl_dodatek.dodatek_do_xl(df_dodatek.stworz_dodatek())
+
+
+# -- Przebieg obiegów:
 
 start_przebiegu = "06-11-2022"
 koniec_przebiegu = "10-12-2022"
@@ -20,7 +26,8 @@ przebieg = PrzebiegController(start_przebiegu, koniec_przebiegu)
 
 xl_przebieg = PrzebiegView()
 
-xl_przebieg.przebieg_do_xl(przebieg.stworz_przebieg())
+xl_przebieg.pokaz_przebieg_df(przebieg.stworz_przebieg())
+
 
 end = datetime.now()
 

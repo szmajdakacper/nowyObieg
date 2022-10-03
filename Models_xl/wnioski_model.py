@@ -100,12 +100,20 @@ class Wnioski:
 
         return wnioski_unikatowe
 
-    def pobierz_liste_zamowien(self, nr_gr_poc):
+    def pobierz_liste_zamowien(self, nr_gr_poc, nr_poc):
 
-        wnioski_po_nr_gr = self.wnioski.loc[self.wnioski["Nr gr. poc."] == nr_gr_poc]
+        if nr_gr_poc == 0:
+            wnioski_po_nr = self.wnioski.loc[self.wnioski["Nr poc."] == nr_poc]
+
+        else:
+            wnioski_po_nr = self.wnioski.loc[self.wnioski["Nr gr. poc."] == nr_gr_poc]
+
+            if nr_poc != 0:
+                mask = wnioski_po_nr['Nr poc.'] == nr_poc
+                wnioski_po_nr = wnioski_po_nr.loc[mask, :]
 
         # wybierz z wniosków tylko unikatowe wartości
-        wnioski_unikatowe = wnioski_po_nr_gr.drop_duplicates(
+        wnioski_unikatowe = wnioski_po_nr.drop_duplicates(
             subset=['Nr zam.'])
 
         wnioski_unikatowe = wnioski_unikatowe.loc[:, [

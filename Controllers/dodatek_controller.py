@@ -37,17 +37,32 @@ class DodatekController:
             # sprawdź każdy pociąg w obiegu, zdefiniowany w pliku inputs/plan_obiegów_taboru.xlsx
             for i, poc_w_obiegu in pociagi_w_obiegu.iterrows():
                 rel_w_pot = i
-                print(
-                    f"{rel_w_pot}. Pociąg_id: {int(poc_w_obiegu['Nr gr. poc.'])}")
 
-                try:
-                    # pobierz wnioski dla pociągu po jego id (nr gr. poc.), tylko z unikatowymi godzinami
-                    wnioski_dla_poc_id = wnioski.pobierz_do_dodatku(
-                        "Nr gr. poc.", int(poc_w_obiegu['Nr gr. poc.']), nr_obiegu, rel_w_pot)
-                except:
-                    print(
-                        f"Brak wnioski o nr id: {poc_w_obiegu['Nr gr. poc.']}, lub pobieranie wywołało błąd.")
-                    continue
+                print(f"Analiza pociągu o id_rel: {rel_w_pot}")
+
+                if poc_w_obiegu['Nr gr. poc.'] == 0:
+                    try:
+                        # pobierz wnioski dla pociągu po jego id (nr gr. poc.), tylko z unikatowymi godzinami
+                        wnioski_dla_poc_id = wnioski.pobierz_do_dodatku(
+                            "Nr poc.", poc_w_obiegu['Nr poc.'], nr_obiegu, rel_w_pot)
+                    except:
+                        print(
+                            f"Brak wniosku o nr pociągu: {poc_w_obiegu['Nr poc.']}, lub pobieranie wywołało błąd.")
+                        continue
+                else:
+
+                    try:
+                        # pobierz wnioski dla pociągu po jego id (nr gr. poc.), tylko z unikatowymi godzinami
+                        wnioski_dla_poc_id = wnioski.pobierz_do_dodatku(
+                            "Nr gr. poc.", int(poc_w_obiegu['Nr gr. poc.']), nr_obiegu, rel_w_pot)
+                    except:
+                        print(
+                            f"Brak wniosku o nr id: {poc_w_obiegu['Nr gr. poc.']}, lub pobieranie wywołało błąd.")
+                        continue
+
+                    if poc_w_obiegu['Nr poc.'] != 0:
+                        mask = wnioski_dla_poc_id['Nr poc.'] == poc_w_obiegu['Nr poc.']
+                        wnioski_dla_poc_id = wnioski_dla_poc_id.loc[mask, :]
 
                 # dodaj do dataframe df_dodatek kolejny pociąg (z ew. wariantami)
                 df_dodatek = pd.concat(

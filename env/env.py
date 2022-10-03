@@ -4,7 +4,7 @@ from datetime import datetime
 
 from openpyxl.utils.cell import get_column_letter
 
-from scripts.isztp_date_conventer import zakres_dat
+import re
 
 
 class ZmienneSrodowiskowe:
@@ -35,7 +35,12 @@ class ZmienneSrodowiskowe:
 
 class FunkcjeGlobalne:
 
+    def __init__(self):
+        self.zmienneSrodowiskowe = ZmienneSrodowiskowe()
+
     def rysuj_kalendarz(self, daty, df_dates, xw_sheet, start_row, start_column):
+
+        df_dates = df_dates.sort_index()
 
         # definicja zakresu kolumn
         start_column_0 = get_column_letter(start_column)
@@ -121,5 +126,109 @@ class FunkcjeGlobalne:
         whole_calendar_range.api.Borders(11).Weight = 1
         whole_calendar_range.api.Borders(12).Weight = 1
 
-    def wykres_z_pot_r():
-        pass
+    def kursuje_w_obiegu(self, termin, dzien):
+
+        # Sprawdź czy pociąg w tym dniu kursuje w tym obiegu (po zadanym terminie)
+        if termin == "H":
+            return True
+
+        elif termin == "D":
+            # w dni robocze
+            if dzien in self.zmienneSrodowiskowe.swieta_poza_niedziela:
+                return False
+            elif (dzien.isoweekday() == 6) | (dzien.isoweekday() == 7):
+                return False
+            else:
+                return True
+
+        elif termin == "C":
+            # w weekendy i święta
+            if dzien in self.zmienneSrodowiskowe.swieta_poza_niedziela:
+                return True
+            elif (dzien.isoweekday() == 6) | (dzien.isoweekday() == 7):
+                return True
+            else:
+                return False
+
+        elif termin == "A":
+            # od poniedziałku do piątku
+            if (dzien.isoweekday() == 6) | (dzien.isoweekday() == 7):
+                return False
+            else:
+                return True
+
+        elif termin == "B":
+            # bez soboty
+            if (dzien.isoweekday() == 6):
+                return False
+            else:
+                return True
+
+        elif termin == "E":
+            # od poniedziałku do soboty oprócz świąt
+            if dzien in self.zmienneSrodowiskowe.swieta_poza_niedziela:
+                return False
+            elif (dzien.isoweekday() == 7):
+                return False
+            else:
+                return True
+
+        elif re.search(r"^\[\d-\d\]\-$", termin):
+            # dni tygodnia od - do
+            od_do = re.findall(r"\d", termin)
+            if (dzien.isoweekday() >= int(od_do[0])) & (dzien.isoweekday() <= int(od_do[1])) & (dzien not in self.zmienneSrodowiskowe.swieta_poza_niedziela):
+                return True
+            else:
+                return False
+
+        elif re.search(r"^\[\d-\d\]$", termin):
+            # dni tygodnia od - do
+            od_do = re.findall(r"\d", termin)
+            if (dzien.isoweekday() >= int(od_do[0])) & (dzien.isoweekday() <= int(od_do[1])):
+                return True
+            else:
+                return False
+
+        elif re.search(r"^\[\d\]$", termin):
+            # jeden dzien w tygodniu
+            dzien_w_tyg = re.findall(r"\d", termin)
+            if dzien.isoweekday() == int(dzien_w_tyg[0]):
+                return True
+            else:
+                return False
+
+        elif re.search(r"^\[\d\]\+$", termin):
+            # jeden dzien w tygodniu
+            dzien_w_tyg = re.findall(r"\d", termin)
+            if (dzien.isoweekday() == int(dzien_w_tyg[0])) | (dzien in self.zmienneSrodowiskowe.swieta_poza_niedziela):
+                return True
+            else:
+                return False
+
+        # specjalne wyjątki w terminie kursowania:-------------------------------------------------------------------
+
+        elif re.search(r"^\[\d\]\*1$", termin):
+            # jeden dzien w tygodniu
+            dzien_w_tyg = re.findall(r"\d", termin)
+            spec_dzien = [datetime(2022, 11, 10)]
+
+            if (dzien.isoweekday() == int(dzien_w_tyg[0])) | (dzien in spec_dzien):
+                return True
+            else:
+                return False
+
+        elif re.search(r"^\[\d-\d\]\*2$", termin):
+            # dni tygodnia od - do
+            spec_dzien = [datetime(2022, 11, 11)]
+            od_do = re.findall(r"\d", termin)
+            if (dzien.isoweekday() >= int(od_do[0])) & (dzien.isoweekday() <= int(od_do[1])) & (dzien not in spec_dzien):
+                return True
+            else:
+                return False
+
+        # -----------------------------------------------------------------------------------------------------------
+
+        else:
+            print(
+                f"brak rozważanego terminu kursowania {termin}")
+            return False
