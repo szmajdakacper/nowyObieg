@@ -23,7 +23,7 @@ miesiace_rzymskie = {"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5,
                      "VI": 6, "VII": 7, "VIII": 8, "IX": 9,
                      "X": 10, "XI": 11, "XII": 12}
 
-rok_rrj = 2022
+rok_rrj = 2023
 
 swieta_poza_niedziela = [
     datetime(2022, 1, 6),

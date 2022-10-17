@@ -53,30 +53,22 @@ class Wnioski:
         # pobierz wnioski do dodatku
         wnioski_wartosc = self.wnioski.loc[self.wnioski[wg_kolumny] == wartosc]
 
-        # pobierz i posortuj daty kursowania pociągu
+        # Pierwsze daty wniosków
+        wnioski_wartosc_c = wnioski_wartosc.copy()
+        wnioski_wartosc_c["Data kursowania"] = ""
+        wnioski_wartosc = wnioski_wartosc_c
+
+        # pobierz daty kursowania
         for nr_zam in wnioski_wartosc["Nr zam."]:
-            df_daty_kursowania = df_daty_kursowania.append(
-                self.daty_kursowania.loc[nr_zam])
+            maska_dat = self.daty_kursowania.index == nr_zam
+            zamowienie_kursuje = self.daty_kursowania.loc[maska_dat, :]
+            zamowienie_kursuje = zamowienie_kursuje.sort_values(
+                by="Data kursowania")
 
-        df_daty_kursowania['Data kursowania'] = pd.to_datetime(
-            df_daty_kursowania['Data kursowania'])
+            maska_wnioskow = wnioski_wartosc["Nr zam."] == nr_zam
+            wnioski_wartosc.loc[maska_wnioskow,
+                                "Data kursowania"] = zamowienie_kursuje.iloc[0, 0]
 
-        df_daty_kursowania = df_daty_kursowania.reset_index()
-
-        try:
-            # wybierz z dat kursowania pierwszą datę dla każdego zamówienia
-            df_daty_kursowania = df_daty_kursowania.drop_duplicates(subset=[
-                                                                    'Nr zam.'])
-        except:
-            df_daty_kursowania.rename(
-                columns={'index': 'Nr zam.'}, inplace=True)
-            df_daty_kursowania = df_daty_kursowania.drop_duplicates(subset=[
-                                                                    'Nr zam.'])
-
-        # dodaj do wniosków, dla każdego zamówienia pierwszy dzień kursowania
-
-        wnioski_wartosc = wnioski_wartosc.merge(
-            df_daty_kursowania, how="inner", on=["Nr zam."])
         wnioski_wartosc = wnioski_wartosc.sort_values(by="Data kursowania")
 
         wnioski_wartosc = wnioski_wartosc.reset_index()

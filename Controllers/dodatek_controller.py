@@ -42,12 +42,14 @@ class DodatekController:
 
                 if poc_w_obiegu['Nr gr. poc.'] == 0:
                     try:
-                        # pobierz wnioski dla pociągu po jego id (nr gr. poc.), tylko z unikatowymi godzinami
+                        # pobierz wnioski dla pociągu po jego nr pociągu (nr poc.), tylko z unikatowymi godzinami
                         wnioski_dla_poc_id = wnioski.pobierz_do_dodatku(
                             "Nr poc.", poc_w_obiegu['Nr poc.'], nr_obiegu, rel_w_pot)
-                    except:
+
+                    except Exception as e:
                         print(
                             f"Brak wniosku o nr pociągu: {poc_w_obiegu['Nr poc.']}, lub pobieranie wywołało błąd.")
+                        print(str(e))
                         continue
                 else:
 

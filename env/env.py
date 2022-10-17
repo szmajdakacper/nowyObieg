@@ -207,21 +207,64 @@ class FunkcjeGlobalne:
 
         # specjalne wyjątki w terminie kursowania:-------------------------------------------------------------------
 
-        elif re.search(r"^\[\d\]\*1$", termin):
+        elif re.search(r"^\[\d\]\*3$", termin):
             # jeden dzien w tygodniu
             dzien_w_tyg = re.findall(r"\d", termin)
-            spec_dzien = [datetime(2022, 11, 10)]
+            spec_dzien = [datetime(2022, 12, 27)]
 
             if (dzien.isoweekday() == int(dzien_w_tyg[0])) | (dzien in spec_dzien):
                 return True
             else:
                 return False
 
-        elif re.search(r"^\[\d-\d\]\*2$", termin):
-            # dni tygodnia od - do
-            spec_dzien = [datetime(2022, 11, 11)]
-            od_do = re.findall(r"\d", termin)
-            if (dzien.isoweekday() >= int(od_do[0])) & (dzien.isoweekday() <= int(od_do[1])) & (dzien not in spec_dzien):
+        elif re.search(r"^\[\d\]\*4$", termin):
+            # jeden dzien w tygodniu
+            dzien_w_tyg = re.findall(r"\d", termin)
+            spec_dzien = [datetime(2023, 1, 5)]
+            spec_dzien_2 = [datetime(2023, 1, 6)]
+
+            if ((dzien.isoweekday() == int(dzien_w_tyg[0])) | (dzien in spec_dzien)) & (dzien not in spec_dzien_2):
+                return True
+            else:
+                return False
+
+        # elif re.search(r"^\[\d-\d\]\*2$", termin):
+        #     # dni tygodnia od - do
+        #     spec_dzien = [datetime(2022, 11, 11)]
+        #     od_do = re.findall(r"\d", termin)
+        #     if (dzien.isoweekday() >= int(od_do[0])) & (dzien.isoweekday() <= int(od_do[1])) & (dzien not in spec_dzien):
+        #         return True
+        #     else:
+        #         return False
+
+        elif re.search(r"^H\*1$", termin):
+            spec_dzien = [datetime(2022, 12, 25)]
+
+            if dzien in spec_dzien:
+                return False
+            else:
+                return True
+
+        elif re.search(r"^\*1$", termin):
+            spec_dzien = [datetime(2022, 12, 25)]
+
+            if dzien in spec_dzien:
+                return True
+            else:
+                return False
+
+        elif re.search(r"^H\*2$", termin):
+            spec_dzien = [datetime(2022, 12, 25)]
+
+            if dzien in spec_dzien:
+                return False
+            else:
+                return True
+
+        elif re.search(r"^\*2$", termin):
+            spec_dzien = [datetime(2022, 12, 25)]
+
+            if dzien in spec_dzien:
                 return True
             else:
                 return False

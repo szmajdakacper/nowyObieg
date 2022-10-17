@@ -6,15 +6,9 @@ from xlwings.utils import rgb_to_int
 
 import pandas as pd
 
-import datetime as dt
-
-from datetime import datetime
-
 import re
 
 from env.env import FunkcjeGlobalne as fg
-
-from Models_xl.obiegi_model import Obiegi
 
 
 class PrzebiegView():
@@ -23,55 +17,168 @@ class PrzebiegView():
         self.df_do_wykresow = pd.DataFrame(data=[], columns=["nr_wykresu", "Odległość", "Rodz. poc.", "Nr poc.", "Termin", "Uwagi", "Rel. od",
                                                              "Odj. RT", "Rel. do", "Prz. RT", "Pojazdy", "opis_obiegu", 'wariant_obiegu'])
 
-    def przebieg_do_xl(self, df_przebieg):
-
-        print("Tworzenie pliku Excel...")
-
-        obiegi = Obiegi()
-        obiegi = obiegi.all()
+    def pokaz_przebieg_df(self, przebieg_df):
 
         wb_xl_przebieg = xw.Book()
+        wb_xl_pot_roz = xw.Book()
 
-        wb_xl_dodatek = xw.Book()
+        wb_temp_p = xw.Book()
+        ws_temp = wb_temp_p.sheets[0]
 
-        nr_obiegow = df_przebieg.drop_duplicates(subset=['nr_obiegu'])
+        ws_temp["A1"].expand('down').options(
+            pd.DataFrame, expand='table', index=False).value = przebieg_df
 
-        nr_obiegow = nr_obiegow.loc[:, 'nr_obiegu']
+        # najmniejszy i największy nr obiegu
+        p_nr_obiegu = int(przebieg_df['nr_obiegu'].min())
+        o_nr_obiegu = int(przebieg_df['nr_obiegu'].max())
 
-        # określ ramy czasowe przebiegu
-        p_start = datetime.strptime(
-            df_przebieg.loc[:, 'Data'].min(), '%Y-%m-%d')
+        for nr_obiegu in range(o_nr_obiegu, p_nr_obiegu - 1, -1):
 
-        p_end = datetime.strptime(
-            df_przebieg.loc[:, 'Data'].max(), '%Y-%m-%d')
+            print(
+                f"Rysowanie przebiegów: Postęp {round(((o_nr_obiegu - nr_obiegu) / o_nr_obiegu) * 100, 1)} %")
 
-        p_zakres = pd.date_range(p_start, p_end)
+            maska_obiegu = przebieg_df['nr_obiegu'] == nr_obiegu
+            df_obieg = przebieg_df.loc[maska_obiegu, :]
 
-        for nr_obiegu in range(int(nr_obiegow.min()), int(nr_obiegow.max() + 1)):
+            opis_obiegu = df_obieg.iloc[0, 3]
 
-            df_przebieg_dla_obiegu = self.rozpisz_przebieg_obiegu(
-                df_przebieg, nr_obiegu, p_zakres, p_end)
-
-            df_przebieg_dla_obiegu = df_przebieg_dla_obiegu.sort_values(
-                by=['nr_pojazdu', 'Data', 'Odj. RT'])
-
-            self.rysuj_przebieg_do_xl(
-                wb_xl_przebieg, df_przebieg_dla_obiegu, nr_obiegu)
-
-            opis_obiegu = obiegi.loc[nr_obiegu, "opis_obiegu"]
-
+            # -------------------------------
+            # Stwórz dodatek (pot) rozszerzony
+            df_obieg_pot_r = df_obieg.copy()
+            df_obieg_pot_r['nr_pojazdu'] = 1
             self.dodatek_z_przebiegu(
-                wb_xl_dodatek, df_przebieg_dla_obiegu, nr_obiegu, opis_obiegu)
+                wb_xl_pot_roz, df_obieg_pot_r, nr_obiegu, opis_obiegu)
+            # -------------------------------
 
-        self.wklej_df_do_wykr()
+            df_obieg = self.rozpisz_pojazdy(df_obieg)
+
+            # stwórz arkusz dla obiegu i zapisz przebieg do xl
+            wb_xl_przebieg.sheets.add(f"obieg_{nr_obiegu}")
+            ws_xl_przebieg_obiegu = wb_xl_przebieg.sheets[f"obieg_{nr_obiegu}"]
+
+            ws_xl_przebieg_obiegu["A1"].expand('down').options(
+                pd.DataFrame, expand='table', index=False).value = df_obieg
+
+            # formatowanie arkusza
+            self.rysuj_przebieg_do_xl(wb_xl_przebieg, df_obieg, nr_obiegu)
+
+        # Zapisz do plków Excela
 
         wb_xl_przebieg.save(Path(__file__) / ".." / ".." /
                             "src" / "outputs" / "pot" / "przebieg.xlsx")
 
-        wb_xl_dodatek.save(Path(__file__) / ".." / ".." /
+        wb_xl_pot_roz.save(Path(__file__) / ".." / ".." /
                            "src" / "outputs" / "pot" / "pot_rozszerzony.xlsx")
 
-        print("Zakończono tworzenie pliku excel z sukcesem.")
+        # Makro do rysowania wykresów obiegu:
+        self.wklej_df_do_wykr()
+
+    def rozpisz_pojazdy(self, df_obieg):
+
+        df_obieg_c = df_obieg.copy()
+
+        df_obieg_c = df_obieg_c.sort_values(
+            by=['Data', 'dzien_w_obiegu', 'Odj. RT'])
+
+        ilosc_pojazdow = int(df_obieg_c.loc[:, 'dzien_w_obiegu'].max())
+
+        # jeżeli obieg jest jednodniowy to nie trzeba go rozpisywać
+        if ilosc_pojazdow <= 1:
+            df_obieg_c['dzien_w_obiegu'] = 1
+            df_obieg_c['nr_pojazdu'] = 1
+            return df_obieg_c
+
+        df_obieg_c['wykorzystano'] = 0
+
+        for pojazd in range(1, ilosc_pojazdow + 1):
+
+            stacja_postoju = ""
+            postoj_od_godz = ""
+            dzien_postoju = ""
+            post_w_obiegu = ""
+
+            pomin_dzien_obiegu = 0
+
+            for i, pociag in df_obieg_c.iterrows():
+
+                # Pomiń jeżeli pociąg jest w innym obiegu
+                if pociag['wykorzystano'] == 1:
+                    continue
+
+                # Rozpoczęcie przebiegu dla tego pojazdu
+                if stacja_postoju == "":
+                    stacja_postoju = pociag['Rel. do']
+                    postoj_od_godz = pociag['Prz. RT']
+                    postoj_od_godz = self.sprawdz_format_godz(postoj_od_godz)
+                    dzien_postoju = pociag['Data']
+                    post_w_obiegu = pociag['dzien_w_obiegu']
+
+                    df_obieg_c.loc[i, 'nr_pojazdu'] = pojazd
+                    df_obieg_c.loc[i, 'wykorzystano'] = 1
+                    continue
+
+                # Przypisz cechy pociągu do zmiennych
+
+                stacja_odjazdu = pociag['Rel. od']
+
+                godzina_odjazdu = pociag['Odj. RT']
+                godzina_odjazdu = self.sprawdz_format_godz(godzina_odjazdu)
+
+                dzien_odjazdu = pociag['Data']
+
+                dzien_w_obiegu = pociag['dzien_w_obiegu']
+
+                # Jeżeli jest to nowa doba, sprawdź który dzień w obiegu zaczyna się w stacji, w której kończyła jednostka dzień wczesniej
+                if dzien_odjazdu != dzien_postoju:
+                    if pomin_dzien_obiegu == dzien_w_obiegu:
+                        continue
+                    elif stacja_odjazdu != stacja_postoju:
+                        pomin_dzien_obiegu = dzien_w_obiegu
+                        continue
+                    else:
+                        pomin_dzien_obiegu = 0
+
+                #  Jeżeli to ten sam dzień, sprawdź czy to poprawny dzień w obiegu
+                else:
+                    if dzien_w_obiegu != post_w_obiegu:
+                        continue
+
+                # Ten sam dzień i ten sam dzień_w_obiegu
+                # Nowa doba, ale dzień w obiegu zaczyna się stacją kończoncą
+                if stacja_odjazdu == stacja_postoju:
+                    stacja_postoju = pociag['Rel. do']
+                    postoj_od_godz = pociag['Prz. RT']
+                    postoj_od_godz = self.sprawdz_format_godz(
+                        postoj_od_godz)
+                    dzien_postoju = pociag['Data']
+                    post_w_obiegu = pociag['dzien_w_obiegu']
+
+                    df_obieg_c.loc[i, 'nr_pojazdu'] = pojazd
+                    df_obieg_c.loc[i, 'wykorzystano'] = 1
+                    continue
+                else:
+                    continue
+
+            df_obieg_c = df_obieg_c.sort_values(
+                by=['nr_pojazdu', 'Data', 'dzien_w_obiegu', 'Odj. RT'])
+
+        return df_obieg_c
+
+    def sprawdz_format_godz(self, postoj_od_godz):
+        if isinstance(postoj_od_godz, str):
+
+            x = re.sub("^\[1\] ", "", postoj_od_godz)
+
+            skladowe = re.split(":", x)
+
+            godziny = int(skladowe[0])
+            minuty = int(skladowe[1])
+
+            time = 1 + (godziny/24)+(minuty/1440)
+
+            return time
+        else:
+            return postoj_od_godz
 
     def dodatek_z_przebiegu(self, xw_book, df_przebieg_dla_obiegu, nr_obiegu, opis_obiegu):
 
@@ -223,6 +330,12 @@ class PrzebiegView():
             st_o = ws_xl_przebieg[f"I{row}"].value
             st_p = ws_xl_przebieg[f"K{row - 1}"].value
 
+            g_o = ws_xl_przebieg[f"J{row}"].value
+            g_p = ws_xl_przebieg[f"L{row - 1}"].value
+
+            data_o = ws_xl_przebieg[f"A{row}"].value
+            data_p = ws_xl_przebieg[f"A{row - 1}"].value
+
             pojazd_o = ws_xl_przebieg[f"O{row}"].value
             pojazd_p = ws_xl_przebieg[f"O{row - 1}"].value
 
@@ -233,136 +346,16 @@ class PrzebiegView():
                 ws_xl_przebieg.range(f"I{row}").color = (255, 0, 0)
                 ws_xl_przebieg.range(f"K{row - 1}").color = (255, 0, 0)
 
-    def rozpisz_przebieg_obiegu(self, df_przebieg, nr_obiegu, p_zakres, p_end):
-
-        print(f"rysuje przebieg obiegu : {nr_obiegu}")
-
-        df_przebieg_dla_obiegu = df_przebieg.loc[df_przebieg['nr_obiegu'] == nr_obiegu]
-
-        df_przebieg_dla_obiegu = df_przebieg_dla_obiegu.sort_values(
-            by=['Data', 'Odj. RT'])
-
-        # jeżeli dzien w obiegu nie jest zdefiniowany to oznacz jako 1
-        dfd = df_przebieg_dla_obiegu.copy()
-        mask = dfd['dzien_w_obiegu'] == 0
-        dfd.loc[mask, 'dzien_w_obiegu'] = 1
-
-        df_przebieg_dla_obiegu = dfd
-
-        ilosc_pojazdow = df_przebieg_dla_obiegu.loc[:, 'dzien_w_obiegu'].max(
-        )
-
-        if ilosc_pojazdow == 1:
-            df_przebieg_dla_obiegu.insert(12, "nr_pojazdu", 1)
-        else:
-            df_przebieg_dla_obiegu['nr_pojazdu'] = pd.Series()
-            df_przebieg_dla_obiegu.insert(13, "wykorzystanie", 0)
-            # rozdziel obieg pomiędzy pojazdy, jeżeli obieg jest kilkudniowy
-            for pojazd in range(1, int(ilosc_pojazdow) + 1):
-                nr_dnia_obiegu = pojazd
-                for p_dzien in p_zakres:
-
-                    # print('dnia:')
-                    # print(p_dzien)
-
-                    dfd = df_przebieg_dla_obiegu.copy()
-                    mask = (dfd['Data'] == datetime.strftime(
-                        p_dzien, '%Y-%m-%d')) & (dfd['dzien_w_obiegu'] == nr_dnia_obiegu)
-
-                    if not dfd.loc[mask, 'wykorzystanie'].any() == 1:
-
-                        dfd.loc[mask, 'nr_pojazdu'] = pojazd
-                        dfd.loc[mask, 'wykorzystanie'] = 1
-                        df_przebieg_dla_obiegu = dfd
-
-                        # print('dla dnia w obiegu:')
-                        # print(nr_dnia_obiegu)
-                        # print('przypisuje pojazd:')
-                        # print(pojazd)
-
-                    # 1. nast_dzien_o następny dzień obiegu
-                    nast_dzien_o = nr_dnia_obiegu + 1
-
-                    if nast_dzien_o > ilosc_pojazdow:
-                        nast_dzien_o = 1
-
-                    if not p_dzien == p_end:
-
-                        # sprawdź czy następnego dnia zaczyna w stacji, w której skończył
-                        while not self.przejscie_nocne_pojazdu(
-                                df_przebieg_dla_obiegu, p_dzien, nast_dzien_o, nr_dnia_obiegu, pojazd):
-
-                            if nast_dzien_o == nr_dnia_obiegu:
-                                if self.przejscie_nocne_pojazdu(
-                                        df_przebieg_dla_obiegu, p_dzien, nast_dzien_o, nr_dnia_obiegu, pojazd) == False:
-                                    print(
-                                        f"BŁĄD_PRZEJŚCIA: Nie poprawne przejście jednoski z dnia {p_dzien} na dzień następny!")
-                                    break
-
-                            nast_dzien_o = nast_dzien_o + 1
-                            if nast_dzien_o > ilosc_pojazdow:
-                                nast_dzien_o = 1
-
-                    nr_dnia_obiegu = nast_dzien_o
-                    # print("następny numer obiegu to :")
-                    # print(nr_dnia_obiegu)
-
-        return df_przebieg_dla_obiegu
-
-    def przejscie_nocne_pojazdu(self, df_przebieg_dla_obiegu, p_dzien, nr_dnia_obiegu, poprz_nr_dnia_ob, pojazd):
-
-        # print(f"z nr: {poprz_nr_dnia_ob} przejscie na {nr_dnia_obiegu}")
-
-        dfd = df_przebieg_dla_obiegu.copy()
-        mask = (dfd['Data'] == datetime.strftime(
-            p_dzien, '%Y-%m-%d')) & (dfd['dzien_w_obiegu'] == poprz_nr_dnia_ob)
-        dfe = dfd.loc[mask, :]
-
-        if dfe.empty:
-            # print(f"brak pociągów dla {nr_dnia_obiegu} w {p_dzien}")
-            # tego dnia żaden pociąg nie kursuje w obiegu, znajdź poprzedni dzien w którym kursował i sprawdź czy jest przejście
-            wczesniejszy_dzien = p_dzien - dt.timedelta(days=1)
-            while dfe.empty:
-                mask = (dfd['Data'] == datetime.strftime(
-                    wczesniejszy_dzien, '%Y-%m-%d')) & (dfd['nr_pojazdu'] == pojazd)
-                dfe = dfd.loc[mask, :]
-                wczesniejszy_dzien = wczesniejszy_dzien - dt.timedelta(days=1)
-
-        ostatnia_stacja = dfe.iloc[-1, 9]
-
-        nast_dzien = p_dzien + dt.timedelta(days=1)
-
-        dff = df_przebieg_dla_obiegu.copy()
-        mask = (dff['Data'] == datetime.strftime(
-            (nast_dzien), '%Y-%m-%d')) & (dff['dzien_w_obiegu'] == nr_dnia_obiegu)
-        dfg = dff.loc[mask, :]
-
-        # jednostka zostaje w stacji przez całą dobę:
-        if dfg.empty:
-            print(
-                f"Obieg pusty: dnia {datetime.strftime((p_dzien + dt.timedelta(days=1)), '%Y-%m-%d')}")
-
-            return False
-
-        try:
-            pierwsza_nast_doba_stacja = dfg.iloc[0, 7]
-            wykorzystanie = dfg.iloc[0, 13]
-        except:
-            print(
-                f"Err: ost. s={ostatnia_stacja} na pierwsza_nast_doba_stacja Error dn. {datetime.strftime(p_dzien, '%Y-%m-%d')}")
-            return False
-
-        # print(f"przyj: {ostatnia_stacja} ; odj: {pierwsza_nast_doba_stacja}")
-
-        if ostatnia_stacja != pierwsza_nast_doba_stacja:
-            # print("'zwracam false'")
-            return False
-        else:
-            if wykorzystanie == 1:
-                # print("'zwracam false' bo wykorzystany")
-                return False
-            # print("zwracam true!")
-            return True
+            if data_o == data_p:
+                if (g_o - g_p) < (10/1440):
+                    ws_xl_przebieg.range(f"J{row}").color = (255, 0, 0)
+                    ws_xl_przebieg.range(f"L{row - 1}").color = (255, 0, 0)
+                elif (g_o - g_p) < (12/1440):
+                    ws_xl_przebieg.range(f"J{row}").color = (255, 255, 9)
+                    ws_xl_przebieg.range(f"L{row - 1}").color = (255, 255, 9)
+                elif (g_o - g_p) < (14/1400):
+                    ws_xl_przebieg.range(f"J{row}").color = (255, 250, 205)
+                    ws_xl_przebieg.range(f"L{row - 1}").color = (255, 250, 205)
 
     def styl_tab(self, ws, start_row):
         zakres_dodatku = ws.range(f"A{start_row}").expand("table")
@@ -389,12 +382,17 @@ class PrzebiegView():
             st_o = ws[f"D{row}"].value
             st_p = ws[f"F{row - 1}"].value
 
-            if ((godz_o - godz_p) < 0.00833) & (st_o == st_p):
+            if ((godz_o - godz_p) < 0) | (st_o != st_p):
+                ws.range(f"A{row - 1}:I{row - 1}").api.Borders(9).Weight = 2
+            elif ((godz_o - godz_p) < (10/1440)) & (st_o == st_p):
                 ws.range(f"E{row}").color = (255, 0, 0)
                 ws.range(f"G{row - 1}").color = (255, 0, 0)
-            elif ((godz_o - godz_p) < 0.01388) & (st_o == st_p):
-                ws.range(f"E{row}").color = (255, 246, 204)
-                ws.range(f"G{row - 1}").color = (255, 246, 204)
+            elif ((godz_o - godz_p) < (12/1440)) & (st_o == st_p):
+                ws.range(f"E{row}").color = (255, 255, 9)
+                ws.range(f"G{row - 1}").color = (255, 255, 9)
+            elif ((godz_o - godz_p) < (14/1440)) & (st_o == st_p):
+                ws.range(f"E{row}").color = (255, 250, 205)
+                ws.range(f"G{row - 1}").color = (255, 250, 205)
 
     def styl_ark(self, ws):
         ws["E:E"].number_format = 'gg:mm'
@@ -459,160 +457,3 @@ class PrzebiegView():
 
         wb_xl_wykresy.save(Path(__file__) / ".." / ".." /
                            "src" / "outputs" / "macros" / "wykresy_figurowe.xlsm")
-
-    def pokaz_przebieg_df(self, przebieg_df):
-
-        wb_xl_przebieg = xw.Book()
-        wb_xl_pot_roz = xw.Book()
-
-        wb_temp_p = xw.Book()
-        ws_temp = wb_temp_p.sheets[0]
-
-        ws_temp["A1"].expand('down').options(
-            pd.DataFrame, expand='table', index=False).value = przebieg_df
-
-        # najmniejszy i największy nr obiegu
-        p_nr_obiegu = int(przebieg_df['nr_obiegu'].min())
-        o_nr_obiegu = int(przebieg_df['nr_obiegu'].max())
-
-        for nr_obiegu in range(o_nr_obiegu, p_nr_obiegu - 1, -1):
-
-            print(
-                f"Rysowanie przebiegów: Postęp {round(((o_nr_obiegu - nr_obiegu) / o_nr_obiegu) * 100, 1)} %")
-
-            maska_obiegu = przebieg_df['nr_obiegu'] == nr_obiegu
-            df_obieg = przebieg_df.loc[maska_obiegu, :]
-
-            opis_obiegu = df_obieg.iloc[0, 3]
-
-            df_obieg = self.rozpisz_pojazdy(df_obieg)
-
-            # stwórz arkusz dla obiegu i zapisz przebieg do xl
-            wb_xl_przebieg.sheets.add(f"obieg_{nr_obiegu}")
-            ws_xl_przebieg_obiegu = wb_xl_przebieg.sheets[f"obieg_{nr_obiegu}"]
-
-            ws_xl_przebieg_obiegu["A1"].expand('down').options(
-                pd.DataFrame, expand='table', index=False).value = df_obieg
-
-            # formatowanie arkusza
-            self.rysuj_przebieg_do_xl(wb_xl_przebieg, df_obieg, nr_obiegu)
-
-            # Stwórz dodatek (pot) rozszerzony z przebiegu
-            self.dodatek_z_przebiegu(
-                wb_xl_pot_roz, df_obieg, nr_obiegu, opis_obiegu)
-
-        # Zapisz do plków Excela
-
-        wb_xl_przebieg.save(Path(__file__) / ".." / ".." /
-                            "src" / "outputs" / "pot" / "przebieg.xlsx")
-
-        wb_xl_pot_roz.save(Path(__file__) / ".." / ".." /
-                           "src" / "outputs" / "pot" / "pot_rozszerzony.xlsx")
-
-    def rozpisz_pojazdy(self, df_obieg):
-
-        df_obieg_c = df_obieg.copy()
-
-        df_obieg_c = df_obieg_c.sort_values(
-            by=['Data', 'dzien_w_obiegu', 'Odj. RT'])
-
-        ilosc_pojazdow = int(df_obieg_c.loc[:, 'dzien_w_obiegu'].max())
-
-        # jeżeli obieg jest jednodniowy to nie trzeba go rozpisywać
-        if ilosc_pojazdow <= 1:
-            df_obieg_c['dzien_w_obiegu'] = 1
-            df_obieg_c['nr_pojazdu'] = 1
-            return df_obieg_c
-
-        df_obieg_c['wykorzystano'] = 0
-
-        for pojazd in range(1, ilosc_pojazdow + 1):
-
-            stacja_postoju = ""
-            postoj_od_godz = ""
-            dzien_postoju = ""
-            postoj_w_obiegu = ""
-            pomin_dzien_obiegu = 0
-
-            for i, pociag in df_obieg_c.iterrows():
-
-                # Pomiń jeżeli pociąg jest w innym obiegu
-                if pociag['wykorzystano'] == 1:
-                    continue
-
-                # Pierwszy obieg dla tego pojazdu
-                if stacja_postoju == "":
-                    stacja_postoju = pociag['Rel. do']
-                    postoj_od_godz = pociag['Prz. RT']
-                    postoj_od_godz = self.sprawdz_format_godz(postoj_od_godz)
-                    dzien_postoju = pociag['Data']
-                    postoj_w_obiegu = pociag['dzien_w_obiegu']
-
-                    df_obieg_c.loc[i, 'nr_pojazdu'] = pojazd
-                    df_obieg_c.loc[i, 'wykorzystano'] = 1
-                    continue
-
-                # Przypisz cechy pociągu do zmiennych
-                stacja_odjazdu = pociag['Rel. od']
-                godzina_odjazdu = pociag['Odj. RT']
-                godzina_odjazdu = self.sprawdz_format_godz(godzina_odjazdu)
-                dzien_odjazdu = pociag['Data']
-                dzien_w_obiegu = pociag['dzien_w_obiegu']
-
-                # Jeżeli jest to nowa doba, sprawdź który dzień w obiegu zaczyna się w stacji,w której kończyła jednostka dzień wczesniej
-                if dzien_odjazdu != dzien_postoju:
-                    if pomin_dzien_obiegu == dzien_w_obiegu:
-                        continue
-                    elif stacja_odjazdu != stacja_postoju:
-                        pomin_dzien_obiegu = dzien_w_obiegu
-                    else:
-                        pomin_dzien_obiegu = 0
-
-                if stacja_odjazdu == stacja_postoju:
-                    if godzina_odjazdu > postoj_od_godz:
-
-                        stacja_postoju = pociag['Rel. do']
-                        postoj_od_godz = pociag['Prz. RT']
-                        postoj_od_godz = self.sprawdz_format_godz(
-                            postoj_od_godz)
-                        dzien_postoju = pociag['Data']
-
-                        df_obieg_c.loc[i, 'nr_pojazdu'] = pojazd
-                        df_obieg_c.loc[i, 'wykorzystano'] = 1
-                        continue
-
-                    elif dzien_odjazdu > dzien_postoju:
-                        stacja_postoju = pociag['Rel. do']
-                        postoj_od_godz = pociag['Prz. RT']
-                        postoj_od_godz = self.sprawdz_format_godz(
-                            postoj_od_godz)
-                        dzien_postoju = pociag['Data']
-
-                        df_obieg_c.loc[i, 'nr_pojazdu'] = pojazd
-                        df_obieg_c.loc[i, 'wykorzystano'] = 1
-                        continue
-
-                    continue
-                else:
-                    continue
-
-            df_obieg_c = df_obieg_c.sort_values(
-                by=['nr_pojazdu', 'Data', 'dzien_w_obiegu', 'Odj. RT'])
-
-        return df_obieg_c
-
-    def sprawdz_format_godz(self, postoj_od_godz):
-        if isinstance(postoj_od_godz, str):
-
-            x = re.sub("^\[1\] ", "", postoj_od_godz)
-
-            skladowe = re.split(":", x)
-
-            godziny = int(skladowe[0])
-            minuty = int(skladowe[1])
-
-            time = 1 + (godziny/24)+(minuty/1440)
-
-            return time
-        else:
-            return postoj_od_godz

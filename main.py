@@ -10,17 +10,17 @@ start = datetime.now()
 
 # # -- Dodatek:
 
-# df_dodatek = DodatekController()
+df_dodatek = DodatekController()
 
-# xl_dodatek = DodatekView()
+xl_dodatek = DodatekView()
 
-# xl_dodatek.dodatek_do_xl(df_dodatek.stworz_dodatek())
+xl_dodatek.dodatek_do_xl(df_dodatek.stworz_dodatek())
 
 
 # -- Przebieg obiegów:
 
-start_przebiegu = "06-11-2022"
-koniec_przebiegu = "10-12-2022"
+start_przebiegu = "11-12-2022"
+koniec_przebiegu = "11-03-2023"
 
 przebieg = PrzebiegController(start_przebiegu, koniec_przebiegu)
 

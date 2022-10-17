@@ -42,7 +42,7 @@ class PrzebiegController():
 
         # Pętla po każdym obiegu
         for nr_obiegu, obieg in obiegi_all.iterrows():
-            # for nr_obiegu in range(11, 12):
+            # for nr_obiegu in range(9, 10):
             #     obieg = {'opis_obiegu': '-'}
 
             pociagi_w_obiegu = pot.filtruj("nr_obiegu", nr_obiegu)
