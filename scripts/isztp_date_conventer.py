@@ -33,6 +33,7 @@ swieta_poza_niedziela = [
     datetime(2022, 8, 15),
     datetime(2022, 11, 1),
     datetime(2022, 11, 11),
+    datetime(2022, 12, 25),
     datetime(2022, 12, 26),
     datetime(2023, 1, 6),
     datetime(2023, 4, 10),
@@ -158,7 +159,7 @@ def zakres_dat(data_kursowania):
             oraz[i] = int(v)
 
         for dzien_kursowania in lista_caly_zakres:
-            if (dzien_kursowania.isoweekday() in oraz) & (dzien_kursowania in swieta_poza_niedziela):
+            if (dzien_kursowania.isoweekday() in oraz) | (dzien_kursowania in swieta_poza_niedziela):
                 lista_dat.append(dzien_kursowania)
 
     elif re.search(r"^codziennie oprócz", def_wykluczen):
@@ -295,13 +296,19 @@ for index, row in wnioski.iterrows():
                 tabela_relacyjna_kursowania.append(
                     [row['Nr zam.'], pojedyncza_data(data_kursowania).strftime("%Y.%m.%d")])
 
+        elif data_kursowania == "nie kursuje":
+            continue
+
         else:
-            lista_dat.append("Nieznany format daty!!!")
+            lista_dat.append(f"Nieznany format daty!!! : {data_kursowania}")
 
     for element_listy_dat in lista_dat:
         if wnioski.at[index, 'Kursuje_lista_dat'] == "":
-            wnioski.at[index, 'Kursuje_lista_dat'] = element_listy_dat.strftime(
-                "%Y.%m.%d")
+            try:
+                wnioski.at[index, 'Kursuje_lista_dat'] = element_listy_dat.strftime(
+                    "%Y.%m.%d")
+            except Exception as e:
+                print(element_listy_dat)
         else:
             wnioski.at[index, 'Kursuje_lista_dat'] = wnioski.at[index, 'Kursuje_lista_dat'] + \
                 "," + element_listy_dat.strftime("%Y.%m.%d")

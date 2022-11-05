@@ -20,9 +20,9 @@ class Wnioski:
         for path in (wnioski_dir).rglob("*.xls*"):
             self.wb_wnioski = xw.Book(path)
             self.ws_wnioski = self.wb_wnioski.sheets[0]
+
             self.wnioski = self.ws_wnioski.range('A1').options(
                 pd.DataFrame, expand='table').value
-
         # wczytanie dat kursowania z pliku excela do DateFrame
         for path in (daty_kursowania_dir).rglob("*.xls*"):
             self.wb_daty_kursowania = xw.Book(path)
@@ -48,8 +48,6 @@ class Wnioski:
 
     def pobierz_do_dodatku(self, wg_kolumny, wartosc, nr_obiegu, rel_w_pot):
 
-        df_daty_kursowania = pd.DataFrame()
-
         # pobierz wnioski do dodatku
         wnioski_wartosc = self.wnioski.loc[self.wnioski[wg_kolumny] == wartosc]
 
@@ -60,14 +58,18 @@ class Wnioski:
 
         # pobierz daty kursowania
         for nr_zam in wnioski_wartosc["Nr zam."]:
-            maska_dat = self.daty_kursowania.index == nr_zam
-            zamowienie_kursuje = self.daty_kursowania.loc[maska_dat, :]
-            zamowienie_kursuje = zamowienie_kursuje.sort_values(
-                by="Data kursowania")
+            try:
+                maska_dat = self.daty_kursowania.index == nr_zam
+                zamowienie_kursuje = self.daty_kursowania.loc[maska_dat, :]
+                zamowienie_kursuje = zamowienie_kursuje.sort_values(
+                    by="Data kursowania")
 
-            maska_wnioskow = wnioski_wartosc["Nr zam."] == nr_zam
-            wnioski_wartosc.loc[maska_wnioskow,
-                                "Data kursowania"] = zamowienie_kursuje.iloc[0, 0]
+                maska_wnioskow = wnioski_wartosc["Nr zam."] == nr_zam
+                wnioski_wartosc.loc[maska_wnioskow,
+                                    "Data kursowania"] = zamowienie_kursuje.iloc[0, 0]
+
+            except:
+                continue
 
         wnioski_wartosc = wnioski_wartosc.sort_values(by="Data kursowania")
 

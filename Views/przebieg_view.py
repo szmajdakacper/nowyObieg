@@ -143,7 +143,7 @@ class PrzebiegView():
                     if dzien_w_obiegu != post_w_obiegu:
                         continue
 
-                # Ten sam dzień i ten sam dzień_w_obiegu
+                # Ten sam dzień i ten sam dzień_w_obiegu, albo:
                 # Nowa doba, ale dzień w obiegu zaczyna się stacją kończoncą
                 if stacja_odjazdu == stacja_postoju:
                     stacja_postoju = pociag['Rel. do']
@@ -157,6 +157,10 @@ class PrzebiegView():
                     df_obieg_c.loc[i, 'wykorzystano'] = 1
                     continue
                 else:
+                    print("Nie udana próba przejścia:")
+                    print(f"postój w : {dzien_w_obiegu}")
+                    print(f"{stacja_odjazdu} != {stacja_postoju}")
+                    print(f"z dnia: {dzien_postoju}")
                     continue
 
             df_obieg_c = df_obieg_c.sort_values(
@@ -309,7 +313,7 @@ class PrzebiegView():
             if df_u_len < 14:
                 l_row = 14
             else:
-                l_row = df_u_len + 1
+                l_row = df_u_len + 2
 
             # styl arkusza:
             self.styl_ark(ws_xl_dodatek_z_przebiegu)
@@ -332,6 +336,9 @@ class PrzebiegView():
 
             g_o = ws_xl_przebieg[f"J{row}"].value
             g_p = ws_xl_przebieg[f"L{row - 1}"].value
+
+            g_o = self.sprawdz_format_godz(g_o)
+            g_p = self.sprawdz_format_godz(g_p)
 
             data_o = ws_xl_przebieg[f"A{row}"].value
             data_p = ws_xl_przebieg[f"A{row - 1}"].value
@@ -378,6 +385,9 @@ class PrzebiegView():
         for row in range(ws[f"A{start_row}"].expand("down").last_cell.row, start_row + 1, -1):
             godz_o = ws[f"E{row}"].value
             godz_p = ws[f"G{row - 1}"].value
+
+            godz_o = self.sprawdz_format_godz(godz_o)
+            godz_p = self.sprawdz_format_godz(godz_p)
 
             st_o = ws[f"D{row}"].value
             st_p = ws[f"F{row - 1}"].value

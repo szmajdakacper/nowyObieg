@@ -207,64 +207,94 @@ class FunkcjeGlobalne:
 
         # specjalne wyjątki w terminie kursowania:-------------------------------------------------------------------
 
-        elif re.search(r"^\[\d\]\*3$", termin):
-            # jeden dzien w tygodniu
-            dzien_w_tyg = re.findall(r"\d", termin)
-            spec_dzien = [datetime(2022, 12, 27)]
+        # 5, 6 oraz 25 XII, 05 I
+        elif termin == "5, 6 oraz 25 XII, 05 I":
+            # dni tygodnia od - do
+            spec_dzien = [datetime(2022, 12, 25), datetime(2023, 1, 5)]
 
-            if (dzien.isoweekday() == int(dzien_w_tyg[0])) | (dzien in spec_dzien):
+            if ((dzien.isoweekday() >= int(5)) & (dzien.isoweekday() <= int(6)) | (dzien in spec_dzien)):
                 return True
             else:
                 return False
 
-        elif re.search(r"^\[\d\]\*4$", termin):
-            # jeden dzien w tygodniu
-            dzien_w_tyg = re.findall(r"\d", termin)
+        # 1-4 i 6 oraz 25 XII i 06 I oprócz 26 XII i 05 I
+        elif termin == "1-4 i 6 oraz 25 XII i 06 I oprócz 26 XII i 05 I":
+            # dni tygodnia od - do
+            spec_dzien_oraz = [datetime(2022, 12, 25), datetime(2023, 1, 6)]
+            spec_dzien_oprocz = [datetime(2022, 12, 26), datetime(2023, 1, 5)]
+
+            if (((((dzien.isoweekday() >= int(1)) & (dzien.isoweekday() <= int(4))) | (dzien.isoweekday() == int(6))) & (dzien not in spec_dzien_oprocz)) | (dzien in spec_dzien_oraz)):
+                return True
+            else:
+                return False
+
+        # (5) i (7) oraz 26 XII i 05 I oprócz 25 XII i 06 I
+        elif termin == "(5) i (7) oraz 26 XII i 05 I oprócz 25 XII i 06 I":
+            # dni tygodnia od - do
+            spec_dzien_oraz = [datetime(2022, 12, 26), datetime(2023, 1, 5)]
+            spec_dzien_oprocz = [datetime(2022, 12, 25), datetime(2023, 1, 6)]
+
+            if (((((dzien.isoweekday() == int(5)) | (dzien.isoweekday() == int(7)))) & (dzien not in spec_dzien_oprocz)) | (dzien in spec_dzien_oraz)):
+                return True
+            else:
+                return False
+
+        # (6) i 26 XII i 06 I
+        elif termin == "(6) i 26 XII i 06 I":
+            # dni tygodnia od - do
+            spec_dzien_oraz = [datetime(2022, 12, 26), datetime(2023, 1, 6)]
+
+            if (((((dzien.isoweekday() == int(6))))) | (dzien in spec_dzien_oraz)):
+                return True
+            else:
+                return False
+
+        # D od 02 I
+        elif termin == "D od 02 I":
+            # dni tygodnia od - do
+            spec_dzien = [datetime(2022, 12, 25), datetime(2023, 1, 5)]
+
+            if ((dzien.isoweekday() >= int(1)) & (dzien.isoweekday() <= int(5)) & (dzien >= datetime(2023, 1, 2))):
+                return True
+            else:
+                return False
+
+        # 6 oraz 25 XII, 05 I
+        elif termin == "6 oraz 25 XII, 05 I":
+            # dni tygodnia od - do
+            spec_dzien = [datetime(2022, 12, 25), datetime(2023, 1, 5)]
+
+            if ((dzien.isoweekday() == int(6)) | (dzien in spec_dzien)):
+                return True
+            else:
+                return False
+
+        # 1-4 i 7 oprócz 25 XII, 05 I
+        elif termin == "1-4 i 7 oprócz 25 XII, 05 I":
+            # dni tygodnia od - do
+            spec_dzien = [datetime(2022, 12, 25), datetime(2023, 1, 5)]
+
+            if ((((dzien.isoweekday() >= int(1)) & (dzien.isoweekday() <= int(4))) | (dzien.isoweekday() == int(7))) & (dzien not in spec_dzien)):
+                return True
+            else:
+                return False
+
+        # 1-4 oprócz 05 I
+        elif termin == "1-4 oprócz 05 I":
+            # dni tygodnia od - do
             spec_dzien = [datetime(2023, 1, 5)]
-            spec_dzien_2 = [datetime(2023, 1, 6)]
 
-            if ((dzien.isoweekday() == int(dzien_w_tyg[0])) | (dzien in spec_dzien)) & (dzien not in spec_dzien_2):
+            if (((dzien.isoweekday() >= int(1)) & (dzien.isoweekday() <= int(4))) & (dzien not in spec_dzien)):
                 return True
             else:
                 return False
 
-        # elif re.search(r"^\[\d-\d\]\*2$", termin):
-        #     # dni tygodnia od - do
-        #     spec_dzien = [datetime(2022, 11, 11)]
-        #     od_do = re.findall(r"\d", termin)
-        #     if (dzien.isoweekday() >= int(od_do[0])) & (dzien.isoweekday() <= int(od_do[1])) & (dzien not in spec_dzien):
-        #         return True
-        #     else:
-        #         return False
+        # 1-5 oraz 5 I
+        elif termin == "1-5 oraz 5 I":
 
-        elif re.search(r"^H\*1$", termin):
-            spec_dzien = [datetime(2022, 12, 25)]
+            spec_dzien = [datetime(2023, 1, 5)]
 
-            if dzien in spec_dzien:
-                return False
-            else:
-                return True
-
-        elif re.search(r"^\*1$", termin):
-            spec_dzien = [datetime(2022, 12, 25)]
-
-            if dzien in spec_dzien:
-                return True
-            else:
-                return False
-
-        elif re.search(r"^H\*2$", termin):
-            spec_dzien = [datetime(2022, 12, 25)]
-
-            if dzien in spec_dzien:
-                return False
-            else:
-                return True
-
-        elif re.search(r"^\*2$", termin):
-            spec_dzien = [datetime(2022, 12, 25)]
-
-            if dzien in spec_dzien:
+            if ((dzien.isoweekday() == int(5)) | (dzien in spec_dzien)):
                 return True
             else:
                 return False
